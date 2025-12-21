@@ -7,20 +7,40 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { IsNumber, IsOptional } from 'class-validator';
+import { Type } from 'class-transformer';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { LocationsService, NearbyUser } from './locations.service';
 import { User } from '../users/entities/user.entity';
 
 class UpdateLocationDto {
+  @IsNumber()
+  @Type(() => Number)
   latitude: number;
+
+  @IsNumber()
+  @Type(() => Number)
   longitude: number;
 }
 
 class NearbyQueryDto {
+  @IsNumber()
+  @Type(() => Number)
   latitude: number;
+
+  @IsNumber()
+  @Type(() => Number)
   longitude: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
   radiusKm?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
   limit?: number;
 }
 

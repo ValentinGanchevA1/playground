@@ -12,7 +12,7 @@ export interface NearbyUser {
   avatarUrl: string | null;
   latitude: number;
   longitude: number;
-  distanceKm: number;
+  distance: number;
   verificationScore: number;
   isOnline: boolean;
 }
@@ -71,13 +71,14 @@ export class LocationsService {
     }
 
     // Extract user IDs (exclude self)
+    // Redis GEORADIUS with WITHDIST returns: [[userId, distance], [userId, distance], ...]
     const userIds: string[] = [];
     const distanceMap = new Map<string, number>();
 
-    for (let i = 0; i < nearbyFromRedis.length; i += 2) {
-      const userId = nearbyFromRedis[i];
-      const distance = parseFloat(nearbyFromRedis[i + 1]);
-      
+    for (const item of nearbyFromRedis) {
+      const userId = Array.isArray(item) ? item[0] : item;
+      const distance = Array.isArray(item) ? parseFloat(item[1]) : 0;
+
       if (userId !== currentUserId) {
         userIds.push(userId);
         distanceMap.set(userId, distance);
@@ -115,7 +116,7 @@ export class LocationsService {
       avatarUrl: user.avatarUrl,
       latitude: user.lastLatitude,
       longitude: user.lastLongitude,
-      distanceKm: distanceMap.get(user.id) || 0,
+      distance: distanceMap.get(user.id) || 0,
       verificationScore: user.verificationScore,
       isOnline: this.isUserOnline(user.lastSeenAt),
     }));
@@ -161,7 +162,7 @@ export class LocationsService {
       avatarUrl: user.avatarUrl,
       latitude: user.lastLatitude,
       longitude: user.lastLongitude,
-      distanceKm: 0, // Not calculated for bounding box
+      distance: 0, // Not calculated for bounding box
       verificationScore: user.verificationScore,
       isOnline: this.isUserOnline(user.lastSeenAt),
     }));
