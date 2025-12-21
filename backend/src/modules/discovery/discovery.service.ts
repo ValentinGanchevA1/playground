@@ -26,7 +26,7 @@ export class DiscoveryService {
     private matchesRepository: Repository<Match>,
   ) {}
 
-  async getDiscoveryProfiles(userId: string, filters: DiscoveryFilters) {
+async getDiscoveryProfiles(userId: string, filters: DiscoveryFilters) {
     const { minAge = 18, maxAge = 100, maxDistance = 100, skip = 0, limit = 10 } = filters;
 
     // Get user's current location
@@ -46,25 +46,25 @@ export class DiscoveryService {
     // Build query for discovery profiles
     let query = this.usersRepository
       .createQueryBuilder('user')
-      .where('user.id != :userId', { userId })
-      .andWhere('user.isActive = true')
-      .andWhere('user.isBanned = false')
-      .andWhere('user.isVisible = true')
-      .andWhere("user.profile->>'completedAt' IS NOT NULL");
+      .where('"user"."id" != :userId', { userId })
+      .andWhere('"user"."isActive" = true')
+      .andWhere('"user"."isBanned" = false')
+      .andWhere('"user"."isVisible" = true')
+      .andWhere(`"user"."profile"->>'completedAt' IS NOT NULL`);
 
     // Exclude already swiped users
     if (swipedUserIds.length > 0) {
-      query = query.andWhere('user.id NOT IN (:...swipedUserIds)', { swipedUserIds });
+      query = query.andWhere('"user"."id" NOT IN (:...swipedUserIds)', { swipedUserIds });
     }
 
     // Age filter
     query = query
-      .andWhere("(user.profile->>'age')::int >= :minAge", { minAge })
-      .andWhere("(user.profile->>'age')::int <= :maxAge", { maxAge });
+      .andWhere(`("user"."profile"->>'age')::int >= :minAge`, { minAge })
+      .andWhere(`("user"."profile"->>'age')::int <= :maxAge`, { maxAge });
 
     // Gender filter based on user's interested_in
     if (currentUser.profile?.interestedIn) {
-      query = query.andWhere("user.profile->>'gender' = :interestedIn", {
+      query = query.andWhere(`"user"."profile"->>'gender' = :interestedIn`, {
         interestedIn: currentUser.profile.interestedIn,
       });
     }
@@ -73,7 +73,7 @@ export class DiscoveryService {
     if (currentUser.lastLatitude && currentUser.lastLongitude) {
       query = query.andWhere(
         `ST_DWithin(
-          user.location::geography,
+          "user"."location"::geography,
           ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
           :maxDistanceMeters
         )`,
@@ -88,12 +88,12 @@ export class DiscoveryService {
     // Order by boosted users first, then verification score and recency
     query = query
       .addSelect(
-        `CASE WHEN user.boostedUntil > NOW() THEN 1 ELSE 0 END`,
+        `CASE WHEN "user"."boostedUntil" > NOW() THEN 1 ELSE 0 END`,
         'isBoosted',
       )
-      .orderBy('isBoosted', 'DESC')
-      .addOrderBy('user.verificationScore', 'DESC')
-      .addOrderBy('user.lastSeenAt', 'DESC')
+      .orderBy('"isBoosted"', 'DESC')
+      .addOrderBy('"user"."verificationScore"', 'DESC')
+      .addOrderBy('"user"."lastSeenAt"', 'DESC')
       .skip(skip)
       .take(limit);
 

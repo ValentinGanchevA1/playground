@@ -25,18 +25,18 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get('me')
-  async getMyProfile(@CurrentUser() userId: string) {
+  async getMyProfile(@CurrentUser('id') userId: string) {
     return this.usersService.getProfile(userId);
   }
 
   @Get('me/completion')
-  async getCompletionStatus(@CurrentUser() userId: string) {
+  async getCompletionStatus(@CurrentUser('id') userId: string) {
     return this.usersService.getProfileCompletionStatus(userId);
   }
 
   @Post('profile')
   async createProfile(
-    @CurrentUser() userId: string,
+    @CurrentUser('id') userId: string,
     @Body() dto: CreateProfileDto,
   ) {
     return this.usersService.createProfile(userId, dto);
@@ -44,7 +44,7 @@ export class UsersController {
 
   @Patch('profile')
   async updateProfile(
-    @CurrentUser() userId: string,
+    @CurrentUser('id') userId: string,
     @Body() dto: UpdateProfileDto,
   ) {
     return this.usersService.updateProfile(userId, dto);
@@ -53,7 +53,7 @@ export class UsersController {
   @Post('profile/photos')
   @UseInterceptors(FileInterceptor('photo'))
   async uploadPhoto(
-    @CurrentUser() userId: string,
+    @CurrentUser('id') userId: string,
     @UploadedFile() file: Express.Multer.File,
     @Query('position', ParseIntPipe) position: number,
   ) {
@@ -62,7 +62,7 @@ export class UsersController {
 
   @Delete('profile/photos/:position')
   async deletePhoto(
-    @CurrentUser() userId: string,
+    @CurrentUser('id') userId: string,
     @Param('position', ParseIntPipe) position: number,
   ) {
     return this.usersService.deleteProfilePhoto(userId, position);

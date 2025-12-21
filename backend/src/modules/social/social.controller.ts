@@ -25,13 +25,13 @@ export class SocialController {
   constructor(private socialService: SocialService) {}
 
   @Get('links')
-  async getMyLinks(@CurrentUser() userId: string) {
+  async getMyLinks(@CurrentUser('id') userId: string) {
     return this.socialService.getUserSocialLinks(userId);
   }
 
   @Post('link')
   async linkAccount(
-    @CurrentUser() userId: string,
+    @CurrentUser('id') userId: string,
     @Body() dto: LinkSocialDto,
   ) {
     return this.socialService.linkSocialAccount(userId, dto.provider, dto.token);
@@ -39,7 +39,7 @@ export class SocialController {
 
   @Delete('links/:id')
   async unlinkAccount(
-    @CurrentUser() userId: string,
+    @CurrentUser('id') userId: string,
     @Param('id') linkId: string,
   ) {
     await this.socialService.unlinkSocialAccount(userId, linkId);
@@ -48,7 +48,7 @@ export class SocialController {
 
   @Patch('links/:id/visibility')
   async toggleVisibility(
-    @CurrentUser() userId: string,
+    @CurrentUser('id') userId: string,
     @Param('id') linkId: string,
   ) {
     return this.socialService.toggleVisibility(userId, linkId);

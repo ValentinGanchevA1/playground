@@ -11,6 +11,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { DiscoveryModule } from './modules/discovery/discovery.module';
+import { EventsModule } from './modules/events/events.module';
+import { GamificationModule } from './modules/gamification/gamification.module';
+import { GiftsModule } from './modules/gifts/gifts.module';
 import { HealthController } from './common/health.controller';
 
 @Module({
@@ -35,6 +38,9 @@ import { HealthController } from './common/health.controller';
     AnalyticsModule,
     AdminModule,
     DiscoveryModule,
+    EventsModule,
+    GamificationModule,
+    GiftsModule,
   ],
   controllers: [HealthController],
 })

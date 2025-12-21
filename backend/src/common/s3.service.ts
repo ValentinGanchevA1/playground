@@ -5,18 +5,19 @@ import { ConfigService } from '@nestjs/config';
 export class S3Service {
   private s3Client: any;
   private bucket: string;
+  private region: string;
 
   constructor(private configService: ConfigService) {
     this.bucket = this.configService.get<string>('AWS_S3_BUCKET') || 'g88-uploads';
+    this.region = this.configService.get<string>('AWS_REGION') || 'us-east-1';
 
-    const region = this.configService.get<string>('AWS_REGION');
     const accessKeyId = this.configService.get<string>('AWS_ACCESS_KEY_ID');
     const secretAccessKey = this.configService.get<string>('AWS_SECRET_ACCESS_KEY');
 
-    if (region && accessKeyId && secretAccessKey) {
+    if (this.region && accessKeyId && secretAccessKey) {
       import('@aws-sdk/client-s3').then(({ S3Client }) => {
         this.s3Client = new S3Client({
-          region,
+          region: this.region,
           credentials: {
             accessKeyId,
             secretAccessKey,
@@ -28,10 +29,14 @@ export class S3Service {
     }
   }
 
+  private getPublicUrl(key: string): string {
+    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
+  }
+
   async upload(buffer: Buffer, key: string, contentType = 'image/jpeg'): Promise<string> {
     if (!this.s3Client) {
       console.warn('S3 not configured, returning mock URL');
-      return `https://${this.bucket}.s3.amazonaws.com/${key}`;
+      return this.getPublicUrl(key);
     }
 
     const { PutObjectCommand } = await import('@aws-sdk/client-s3');
@@ -45,7 +50,7 @@ export class S3Service {
       }),
     );
 
-    return `https://${this.bucket}.s3.amazonaws.com/${key}`;
+    return this.getPublicUrl(key);
   }
 
   async delete(key: string): Promise<void> {
@@ -65,7 +70,7 @@ export class S3Service {
 
   async getSignedUrl(key: string, expiresIn = 3600): Promise<string> {
     if (!this.s3Client) {
-      return `https://${this.bucket}.s3.amazonaws.com/${key}`;
+      return this.getPublicUrl(key);
     }
 
     const { GetObjectCommand } = await import('@aws-sdk/client-s3');

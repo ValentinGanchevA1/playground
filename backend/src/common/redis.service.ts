@@ -84,7 +84,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     return this.client.expire(key, seconds);
   }
 
+  // Set with expiry
+  async setex(key: string, seconds: number, value: string): Promise<string | null> {
+    return this.client.setex(key, seconds, value);
+  }
+
   // Sorted set operations (for trending)
+  async zadd(key: string, score: number, member: string): Promise<number> {
+    return this.client.zadd(key, score, member);
+  }
+
   async zIncrBy(key: string, increment: number, member: string): Promise<string> {
     return this.client.zincrby(key, increment, member);
   }

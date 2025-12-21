@@ -40,7 +40,7 @@ export class User {
   @Column({ nullable: true })
   phone: string;
 
-  @Column()
+  @Column({ nullable: true })
   @Exclude()
   passwordHash: string;
 
@@ -128,6 +128,12 @@ export class User {
 
   @Column({ type: 'timestamp', nullable: true })
   boostedUntil: Date;
+
+  @Column({ type: 'int', default: 0 })
+  xp: number;
+
+  @Column({ type: 'int', default: 1 })
+  level: number;
 
   @CreateDateColumn()
   createdAt: Date;
