@@ -6,6 +6,8 @@ import { RedisService } from '../../common/redis.service';
 
 const GEO_KEY = 'user:locations';
 
+export type MarkerCategory = 'dating' | 'trading';
+
 export interface NearbyUser {
   id: string;
   displayName: string;
@@ -15,6 +17,9 @@ export interface NearbyUser {
   distance: number;
   verificationScore: number;
   isOnline: boolean;
+  primaryCategory: MarkerCategory;
+  secondaryCategory: MarkerCategory | null;
+  goals: string[];
 }
 
 @Injectable()
@@ -109,17 +114,25 @@ export class LocationsService {
       .take(limit)
       .getMany();
 
-    // Map to response format with distance
-    return users.map((user) => ({
-      id: user.id,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
-      latitude: user.lastLatitude,
-      longitude: user.lastLongitude,
-      distance: distanceMap.get(user.id) || 0,
-      verificationScore: user.verificationScore,
-      isOnline: this.isUserOnline(user.lastSeenAt),
-    }));
+    // Map to response format with distance and categories
+    return users.map((user) => {
+      const goals = (user.profile as any)?.goals || [];
+      const { primaryCategory, secondaryCategory } = this.calculateCategories(goals);
+
+      return {
+        id: user.id,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        latitude: user.lastLatitude,
+        longitude: user.lastLongitude,
+        distance: distanceMap.get(user.id) || 0,
+        verificationScore: user.verificationScore,
+        isOnline: this.isUserOnline(user.lastSeenAt),
+        primaryCategory,
+        secondaryCategory,
+        goals,
+      };
+    });
   }
 
   // ─── Get Users in Bounding Box (Map Viewport) ─────────────────────────
@@ -142,6 +155,7 @@ export class LocationsService {
         'user.lastLongitude',
         'user.verificationScore',
         'user.lastSeenAt',
+        'user.profile',
       ])
       .where(
         `ST_Within(
@@ -156,16 +170,24 @@ export class LocationsService {
       .take(limit)
       .getMany();
 
-    return users.map((user) => ({
-      id: user.id,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
-      latitude: user.lastLatitude,
-      longitude: user.lastLongitude,
-      distance: 0, // Not calculated for bounding box
-      verificationScore: user.verificationScore,
-      isOnline: this.isUserOnline(user.lastSeenAt),
-    }));
+    return users.map((user) => {
+      const goals = (user.profile as any)?.goals || [];
+      const { primaryCategory, secondaryCategory } = this.calculateCategories(goals);
+
+      return {
+        id: user.id,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        latitude: user.lastLatitude,
+        longitude: user.lastLongitude,
+        distance: 0, // Not calculated for bounding box
+        verificationScore: user.verificationScore,
+        isOnline: this.isUserOnline(user.lastSeenAt),
+        primaryCategory,
+        secondaryCategory,
+        goals,
+      };
+    });
   }
 
   // ─── Find Users Within Radius (Pure PostGIS) ──────────────────────────
@@ -195,5 +217,35 @@ export class LocationsService {
     if (!lastSeenAt) return false;
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
     return new Date(lastSeenAt).getTime() > fiveMinutesAgo;
+  }
+
+  // ─── Helper: Calculate user category from goals ───────────────────────
+
+  private calculateCategories(goals: string[]): {
+    primaryCategory: MarkerCategory;
+    secondaryCategory: MarkerCategory | null;
+  } {
+    const isDating = goals.includes('dating') || goals.includes('friends');
+    const isTrading = goals.includes('business') || goals.includes('networking');
+
+    let primaryCategory: MarkerCategory = 'dating';
+    let secondaryCategory: MarkerCategory | null = null;
+
+    if (isDating && isTrading) {
+      // First goal in array determines primary
+      const firstGoal = goals[0];
+      if (firstGoal === 'business' || firstGoal === 'networking') {
+        primaryCategory = 'trading';
+        secondaryCategory = 'dating';
+      } else {
+        primaryCategory = 'dating';
+        secondaryCategory = 'trading';
+      }
+    } else if (isTrading) {
+      primaryCategory = 'trading';
+    }
+    // else default is dating
+
+    return { primaryCategory, secondaryCategory };
   }
 }

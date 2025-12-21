@@ -12,7 +12,27 @@ import { Type } from 'class-transformer';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { LocationsService, NearbyUser } from './locations.service';
+import { EventsService } from '../events/events.service';
 import { User } from '../users/entities/user.entity';
+
+export interface NearbyEvent {
+  id: string;
+  title: string;
+  category: string;
+  latitude: number;
+  longitude: number;
+  distance: number;
+  startTime: Date;
+  attendeeCount: number;
+  hostName: string;
+  hostAvatar: string | null;
+  coverImageUrl: string | null;
+}
+
+export interface MapDataResponse {
+  users: NearbyUser[];
+  events: NearbyEvent[];
+}
 
 class UpdateLocationDto {
   @IsNumber()
@@ -49,7 +69,10 @@ class NearbyQueryDto {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class LocationsController {
-  constructor(private readonly locationsService: LocationsService) {}
+  constructor(
+    private readonly locationsService: LocationsService,
+    private readonly eventsService: EventsService,
+  ) {}
 
   @Post('update')
   @ApiOperation({ summary: 'Update user location' })
@@ -95,5 +118,46 @@ export class LocationsController {
       maxLng,
       limit || 100,
     );
+  }
+
+  @Get('map-data')
+  @ApiOperation({ summary: 'Get combined map data (users + events)' })
+  async getMapData(
+    @CurrentUser() user: User,
+    @Query() query: NearbyQueryDto,
+  ): Promise<MapDataResponse> {
+    // Fetch users and events in parallel for performance
+    const [users, rawEvents] = await Promise.all([
+      this.locationsService.findNearbyUsers(
+        user.id,
+        query.latitude,
+        query.longitude,
+        query.radiusKm || 5,
+        query.limit || 50,
+      ),
+      this.eventsService.findNearbyEvents(
+        query.latitude,
+        query.longitude,
+        query.radiusKm || 10,
+        query.limit || 20,
+      ),
+    ]);
+
+    // Map raw events to NearbyEvent interface
+    const events: NearbyEvent[] = rawEvents.map((e: any) => ({
+      id: e.id,
+      title: e.title,
+      category: e.category,
+      latitude: e.latitude || 0,
+      longitude: e.longitude || 0,
+      distance: parseFloat(e.distance) || 0,
+      startTime: e.startTime,
+      attendeeCount: parseInt(e.attendeeCount, 10) || 0,
+      hostName: e.hostName,
+      hostAvatar: e.hostAvatar,
+      coverImageUrl: e.coverImageUrl,
+    }));
+
+    return { users, events };
   }
 }

@@ -73,7 +73,20 @@ export class EventsService {
 
     return this.eventRepository.query(`
       SELECT
-        e.*,
+        e.id,
+        e.title,
+        e.description,
+        e.category,
+        e.address,
+        e."startTime",
+        e."endTime",
+        e."maxCapacity",
+        e."isPublic",
+        e."coverImageUrl",
+        e.metadata,
+        e.status,
+        ST_Y(e.location::geometry) as latitude,
+        ST_X(e.location::geometry) as longitude,
         ST_Distance(e.location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) as distance,
         u."displayName" as "hostName",
         u."avatarUrl" as "hostAvatar",
