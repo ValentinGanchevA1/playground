@@ -16,7 +16,10 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(npm run seed:*)",
-      "Bash(node cleanup-enums.js:*)"
+      "Bash(node cleanup-enums.js:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill //F //PID 128144)",
+      "Bash(npm run start:dev:*)"
     ]
   }
 }

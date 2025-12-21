@@ -94,4 +94,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
     });
   }
+
+  // Emit wave notification to a specific user
+  emitWaveToUser(toUserId: string, wave: {
+    id: string;
+    fromUserId: string;
+    fromUserName: string;
+    fromUserAvatar?: string;
+    createdAt: Date;
+  }) {
+    this.server.to(`user:${toUserId}`).emit('wave:receive', wave);
+  }
 }

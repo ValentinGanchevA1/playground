@@ -14,6 +14,7 @@ import { DiscoveryModule } from './modules/discovery/discovery.module';
 import { EventsModule } from './modules/events/events.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
 import { GiftsModule } from './modules/gifts/gifts.module';
+import { InteractionsModule } from './modules/interactions/interactions.module';
 import { HealthController } from './common/health.controller';
 
 @Module({
@@ -41,6 +42,7 @@ import { HealthController } from './common/health.controller';
     EventsModule,
     GamificationModule,
     GiftsModule,
+    InteractionsModule,
   ],
   controllers: [HealthController],
 })
