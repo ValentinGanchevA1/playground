@@ -1,12 +1,13 @@
 // backend/src/modules/verification/verification.service.ts
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Verification, VerificationType, VerificationStatus } from './entities/verification.entity';
+import { Repository, Not, MoreThan } from 'typeorm';
+import { Verification, VerificationType, VerificationStatus } from '../users/entities/verification.entity';
 import { User } from '../users/entities/user.entity';
-import { TwilioService } from '../common/twilio.service';
-import { S3Service } from '../common/s3.service';
-import { FaceCompareService } from '../common/face-compare.service';
+import { TwilioService } from '../../common/twilio.service';
+import { S3Service } from '../../common/s3.service';
+import { FaceCompareService } from '../../common/face-compare.service';
+import { EmailService } from '../common/email.service';
 
 @Injectable()
 export class VerificationService {
@@ -348,6 +349,9 @@ export class VerificationService {
     value: boolean,
   ): Promise<void> {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
     user.badges = { ...user.badges, [badge]: value };
 
@@ -368,6 +372,9 @@ export class VerificationService {
     pending: VerificationType[];
   }> {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
 
     const pendingVerifications = await this.verificationRepo.find({
       where: {
