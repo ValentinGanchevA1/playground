@@ -45,9 +45,7 @@ export class TrendingService {
 
     const insights = {
       totalUsers: users.length,
-      activeNow: users.filter(u =>
-        Date.now() - new Date(u.lastActiveAt as unknown as string || Date.now()).getTime() < 300000
-      ).length,
+      activeNow: users.filter(u => u.isOnline).length,
       demographics: this.aggregateDemographics(users),
       topInterests: this.aggregateInterests(users),
       activityHeatmap: await this.getActivityHeatmap(lat, lng, radiusKm),

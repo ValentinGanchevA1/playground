@@ -2,31 +2,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-
-@Entity('geofences')
-export class Geofence {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  name: string;
-
-  @Column({ type: 'geography', spatialFeatureType: 'Polygon', srid: 4326 })
-  boundary: GeoJSON.Polygon;
-
-  @Column({ type: 'jsonb' })
-  triggerConfig: {
-    onEnter: boolean;
-    onExit: boolean;
-    notificationTemplate: string;
-  };
-
-  @Column({ default: true })
-  isActive: boolean;
-}
+import { Geofence, GeofenceTrigger } from './entities/geofence.entity';
+import { RedisService } from '../../common/redis.service';
 
 @Injectable()
 export class GeofenceService {
+  constructor(
+    @InjectRepository(Geofence)
+    private geofenceRepo: Repository<Geofence>,
+    private redis: RedisService,
+  ) {}
+
   async checkGeofences(userId: string, lat: number, lng: number) {
     const triggeredFences = await this.geofenceRepo
       .createQueryBuilder('fence')
@@ -44,7 +30,7 @@ export class GeofenceService {
       const wasInside = prevStates[fence.id] === 'inside';
       const isInside = true;
 
-      if (!wasInside && isInside && fence.triggerConfig.onEnter) {
+      if (!wasInside && isInside && (fence.trigger === GeofenceTrigger.ENTER || fence.trigger === GeofenceTrigger.BOTH)) {
         await this.sendNotification(userId, fence, 'enter');
       }
 
@@ -55,11 +41,41 @@ export class GeofenceService {
     for (const [fenceId, state] of Object.entries(prevStates)) {
       if (state === 'inside' && !triggeredFences.find(f => f.id === fenceId)) {
         const fence = await this.geofenceRepo.findOne({ where: { id: fenceId } });
-        if (fence?.triggerConfig.onExit) {
+        if (fence && (fence.trigger === GeofenceTrigger.EXIT || fence.trigger === GeofenceTrigger.BOTH)) {
           await this.sendNotification(userId, fence, 'exit');
         }
         await this.redis.hDel(`user:${userId}:geofences`, fenceId);
       }
     }
+  }
+
+  private async sendNotification(userId: string, fence: Geofence, eventType: 'enter' | 'exit'): Promise<void> {
+    // Implementation for sending notification
+    // This would integrate with a notification service
+    const notification = fence.notification;
+    console.log(`Geofence ${eventType} notification for user ${userId}:`, notification);
+
+    // Increment trigger count
+    await this.geofenceRepo.increment({ id: fence.id }, 'triggerCount', 1);
+  }
+
+  async createGeofence(data: Partial<Geofence>): Promise<Geofence> {
+    const geofence = this.geofenceRepo.create(data);
+    return this.geofenceRepo.save(geofence);
+  }
+
+  async updateGeofence(id: string, data: Partial<Geofence>): Promise<Geofence | null> {
+    await this.geofenceRepo.update(id, data);
+    return this.geofenceRepo.findOne({ where: { id } });
+  }
+
+  async deleteGeofence(id: string): Promise<void> {
+    await this.geofenceRepo.delete(id);
+  }
+
+  async getActiveGeofences(): Promise<Geofence[]> {
+    return this.geofenceRepo.find({
+      where: { isActive: true },
+    });
   }
 }

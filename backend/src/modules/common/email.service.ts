@@ -52,7 +52,7 @@ export class EmailService {
     `;
 
     const mailOptions = {
-      from: { email: 'verify@g88.app', name: 'G88' },
+      from: { address: 'verify@g88.app', name: 'G88' },
       to,
       subject: `${code} is your G88 verification code`,
       html,
@@ -60,7 +60,7 @@ export class EmailService {
     };
 
     if (process.env.SENDGRID_API_KEY) {
-      await sendgrid.send(mailOptions as any);
+      await sendgrid.send({ ...mailOptions, from: { email: 'verify@g88.app', name: 'G88' } } as any);
     } else {
       await this.transporter.sendMail(mailOptions);
     }
@@ -93,14 +93,14 @@ export class EmailService {
     `;
 
     const mailOptions = {
-      from: { email: 'hello@g88.app', name: 'G88' },
+      from: { address: 'hello@g88.app', name: 'G88' },
       to,
-      subject: 'Welcome to G88! 🎉',
+      subject: 'Welcome to G88!',
       html,
     };
 
     if (process.env.SENDGRID_API_KEY) {
-      await sendgrid.send(mailOptions as any);
+      await sendgrid.send({ ...mailOptions, from: { email: 'hello@g88.app', name: 'G88' } } as any);
     } else {
       await this.transporter.sendMail(mailOptions);
     }

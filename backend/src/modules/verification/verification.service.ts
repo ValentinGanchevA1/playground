@@ -7,7 +7,7 @@ import { User } from '../users/entities/user.entity';
 import { TwilioService } from '../../common/twilio.service';
 import { S3Service } from '../../common/s3.service';
 import { FaceCompareService } from '../../common/face-compare.service';
-import { EmailService } from '../common/email.service';
+import { EmailService } from '../../common/email.service';
 
 @Injectable()
 export class VerificationService {
@@ -94,22 +94,25 @@ export class VerificationService {
     }
 
     // Check expiry
-    if (new Date(verification.metadata.codeExpiresAt) < new Date()) {
+    if (verification.metadata.codeExpiresAt && new Date(verification.metadata.codeExpiresAt) < new Date()) {
       verification.status = VerificationStatus.EXPIRED;
       await this.verificationRepo.save(verification);
       throw new BadRequestException('Code expired. Request a new one.');
     }
 
     // Check attempts
-    if (verification.metadata.attempts >= 5) {
+    if ((verification.metadata.attempts ?? 0) >= 5) {
       throw new BadRequestException('Too many failed attempts. Request a new code.');
     }
 
     // Verify code
+    if (!verification.metadata.code) {
+      throw new BadRequestException('Invalid verification state');
+    }
     const isValid = await this.compareCode(code, verification.metadata.code);
 
     if (!isValid) {
-      verification.metadata.attempts += 1;
+      verification.metadata.attempts = (verification.metadata.attempts ?? 0) + 1;
       await this.verificationRepo.save(verification);
       throw new BadRequestException('Invalid code');
     }
@@ -121,7 +124,7 @@ export class VerificationService {
 
     // Update user email if different
     const user = verification.user;
-    if (user.email !== verification.metadata.email) {
+    if (verification.metadata.email && user.email !== verification.metadata.email) {
       user.email = verification.metadata.email;
       await this.usersRepo.save(user);
     }
@@ -130,10 +133,12 @@ export class VerificationService {
     await this.updateUserBadges(userId, 'email', true);
 
     // Send welcome email
-    await this.emailService.sendWelcomeEmail(
-      verification.metadata.email,
-      user.displayName,
-    );
+    if (verification.metadata.email) {
+      await this.emailService.sendWelcomeEmail(
+        verification.metadata.email,
+        user.displayName,
+      );
+    }
 
     return { verified: true };
   }
@@ -210,22 +215,25 @@ export class VerificationService {
     }
 
     // Check expiry
-    if (new Date(verification.metadata.codeExpiresAt) < new Date()) {
+    if (verification.metadata.codeExpiresAt && new Date(verification.metadata.codeExpiresAt) < new Date()) {
       verification.status = VerificationStatus.EXPIRED;
       await this.verificationRepo.save(verification);
       throw new BadRequestException('Code expired. Request a new one.');
     }
 
     // Check attempts
-    if (verification.metadata.attempts >= 5) {
+    if ((verification.metadata.attempts ?? 0) >= 5) {
       throw new BadRequestException('Too many failed attempts. Request a new code.');
     }
 
     // Verify code
+    if (!verification.metadata.code) {
+      throw new BadRequestException('Invalid verification state');
+    }
     const isValid = await this.compareCode(code, verification.metadata.code);
 
     if (!isValid) {
-      verification.metadata.attempts += 1;
+      verification.metadata.attempts = (verification.metadata.attempts ?? 0) + 1;
       await this.verificationRepo.save(verification);
       throw new BadRequestException('Invalid code');
     }
@@ -356,10 +364,10 @@ export class VerificationService {
     user.badges = { ...user.badges, [badge]: value };
 
     // Calculate verification score
-    const badgeWeights = { phone: 20, email: 15, photo: 35, id: 25, premium: 5 };
+    const badgeWeights: Record<keyof User['badges'], number> = { phone: 20, email: 15, photo: 35, id: 25, premium: 5, social: 0 };
     let score = 0;
-    for (const [key, weight] of Object.entries(badgeWeights)) {
-      if (user.badges[key]) score += weight;
+    for (const key of Object.keys(badgeWeights) as Array<keyof User['badges']>) {
+      if (user.badges[key]) score += badgeWeights[key];
     }
     user.verificationScore = score;
 

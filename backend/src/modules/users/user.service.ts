@@ -2,12 +2,12 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
-import { S3Service } from '../common/s3.service';
-import { RedisService } from '../redis/redis.service';
-import { CreateProfileDto, UpdateProfileDto } from './dto/create-profile.dto';
+import { User, Gender } from './entities/user.entity';
+import { S3Service } from '../../common/s3.service';
+import { RedisService } from '../../common/redis.service';
+import { CreateProfileDto, UpdateProfileDto, Gender as DtoGender } from './dto/create-profile.dto';
 
-interface ProfileCompletion {
+export interface ProfileCompletion {
   steps: {
     basicInfo: boolean;
     bio: boolean;
@@ -44,10 +44,10 @@ export class UsersService {
     user.profile = {
       bio: dto.bio || '',
       age: dto.age,
-      gender: dto.gender,
-      interestedIn: dto.interestedIn,
+      gender: dto.gender as unknown as Gender,
+      interestedIn: dto.interestedIn as unknown as Gender | undefined,
       interests: dto.interests,
-      goals: dto.goals,
+      goals: dto.goals as unknown as string[],
       photoUrls: dto.photoUrls || [],
       completedAt: new Date().toISOString(),
     };
@@ -80,9 +80,18 @@ export class UsersService {
     if (!user) throw new NotFoundException('User not found');
 
     // Merge profile updates
+    const profileUpdate: Partial<User['profile']> = {};
+    if (dto.bio !== undefined) profileUpdate.bio = dto.bio;
+    if (dto.age !== undefined) profileUpdate.age = dto.age;
+    if (dto.gender !== undefined) profileUpdate.gender = dto.gender as unknown as Gender;
+    if (dto.interestedIn !== undefined) profileUpdate.interestedIn = dto.interestedIn as unknown as Gender;
+    if (dto.interests !== undefined) profileUpdate.interests = dto.interests;
+    if (dto.goals !== undefined) profileUpdate.goals = dto.goals as unknown as string[];
+    if (dto.photoUrls !== undefined) profileUpdate.photoUrls = dto.photoUrls;
+
     user.profile = {
       ...user.profile,
-      ...dto,
+      ...profileUpdate,
     };
 
     if (dto.displayName) user.displayName = dto.displayName;
@@ -126,6 +135,7 @@ export class UsersService {
 
     // Update user's photo array
     const user = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
     const photos = user.profile?.photoUrls || [];
 
     // Replace or add at position
@@ -151,6 +161,7 @@ export class UsersService {
 
   async deleteProfilePhoto(userId: string, position: number): Promise<void> {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
     const photos = user.profile?.photoUrls || [];
 
     if (position >= photos.length) {
@@ -166,7 +177,7 @@ export class UsersService {
 
     // Update avatar if needed
     if (position === 0) {
-      user.avatarUrl = photos[0] || null;
+      user.avatarUrl = photos[0] ?? undefined;
     }
 
     await this.usersRepo.save(user);
@@ -183,21 +194,22 @@ export class UsersService {
     const sanitized = this.sanitizeUser(user);
 
     // Cache for 5 minutes
-    await this.redis.setEx(`user:profile:${userId}`, 300, JSON.stringify(sanitized));
+    await this.redis.set(`user:profile:${userId}`, JSON.stringify(sanitized), 300);
 
     return sanitized;
   }
 
   async getProfileCompletionStatus(userId: string): Promise<ProfileCompletion> {
     const user = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
 
     const steps = {
       basicInfo: !!(user.displayName && user.profile?.age && user.profile?.gender),
-      bio: !!(user.profile?.bio?.length > 10),
-      photos: !!(user.profile?.photoUrls?.length >= 1),
-      interests: !!(user.profile?.interests?.length >= 3),
+      bio: !!((user.profile?.bio?.length ?? 0) > 10),
+      photos: !!((user.profile?.photoUrls?.length ?? 0) >= 1),
+      interests: !!((user.profile?.interests?.length ?? 0) >= 3),
       location: !!user.location,
-      goals: !!(user.profile?.goals?.length >= 1),
+      goals: !!((user.profile?.goals?.length ?? 0) >= 1),
     };
 
     const completed = Object.values(steps).filter(Boolean).length;

@@ -41,9 +41,9 @@ export class ChatService {
 
     conversation = this.conversationsRepo.create({
       type: ConversationType.DIRECT,
-      participant1: user1,
-      participant2: user2,
-    });
+      participant1: user1 ?? undefined,
+      participant2: user2 ?? undefined,
+    } as Partial<Conversation>);
 
     return this.conversationsRepo.save(conversation);
   }
@@ -101,13 +101,13 @@ export class ChatService {
     });
 
     const message = this.messagesRepo.create({
-      conversation,
-      sender,
+      conversation: conversation ?? undefined,
+      sender: sender ?? undefined,
       content,
       type,
       metadata,
       status: MessageStatus.SENT,
-    });
+    } as Partial<Message>);
 
     await this.messagesRepo.save(message);
 

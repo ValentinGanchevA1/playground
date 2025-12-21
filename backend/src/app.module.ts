@@ -10,6 +10,7 @@ import { VerificationModule } from './modules/verification/verification.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { DiscoveryModule } from './modules/discovery/discovery.module';
 import { HealthController } from './common/health.controller';
 
 @Module({
@@ -33,6 +34,7 @@ import { HealthController } from './common/health.controller';
     NotificationsModule,
     AnalyticsModule,
     AdminModule,
+    DiscoveryModule,
   ],
   controllers: [HealthController],
 })

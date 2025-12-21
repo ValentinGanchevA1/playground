@@ -57,20 +57,23 @@ export class SocialService {
     if (existing && existing.user.id === userId) {
       // Update existing link
       existing.metadata = { ...existing.metadata, verified: profile.verified };
-      existing.avatarUrl = profile.avatarUrl;
-      existing.displayName = profile.displayName;
+      existing.avatarUrl = profile.avatarUrl ?? existing.avatarUrl;
+      existing.displayName = profile.displayName ?? existing.displayName;
       return this.socialLinkRepo.save(existing);
     }
 
     // Create new link
     const user = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
 
     const socialLink = this.socialLinkRepo.create({
       user,
       provider,
       providerId: profile.id,
       email: profile.email,
-      displayName: profile.displayName,
+      displayName: profile.displayName ?? '',
       profileUrl: profile.profileUrl,
       avatarUrl: profile.avatarUrl,
       metadata: {
@@ -78,7 +81,7 @@ export class SocialService {
         followers: profile.followers,
         verified: profile.verified,
       },
-    });
+    } as Partial<SocialLink>);
 
     await this.socialLinkRepo.save(socialLink);
 
@@ -259,15 +262,16 @@ export class SocialService {
     });
 
     const user = await this.usersRepo.findOne({ where: { id: userId } });
+    if (!user) return;
 
     // Social badge requires at least 1 linked account
     user.badges = { ...user.badges, social: links >= 1 };
 
     // Recalculate verification score
-    const badgeWeights = { phone: 20, email: 15, photo: 35, id: 25, social: 10, premium: 5 };
+    const badgeWeights: Record<keyof User['badges'], number> = { phone: 20, email: 15, photo: 35, id: 25, social: 10, premium: 5 };
     let score = 0;
-    for (const [key, weight] of Object.entries(badgeWeights)) {
-      if (user.badges[key]) score += weight;
+    for (const key of Object.keys(badgeWeights) as Array<keyof User['badges']>) {
+      if (user.badges[key]) score += badgeWeights[key];
     }
     user.verificationScore = Math.min(score, 100);
 
