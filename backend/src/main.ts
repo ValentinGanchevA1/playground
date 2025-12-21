@@ -25,6 +25,8 @@ async function bootstrap() {
       'http://localhost:8081',
       'http://10.0.2.2:8081', // Android emulator
     ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
     credentials: true,
   });
 

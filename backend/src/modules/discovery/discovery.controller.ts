@@ -70,4 +70,19 @@ export class DiscoveryController {
     // Premium feature
     return this.discoveryService.getLikesReceived(req.user.id);
   }
+
+  @Post('rewind')
+  async rewindLastSwipe(@Request() req: AuthenticatedRequest) {
+    return this.discoveryService.rewindLastSwipe(req.user.id);
+  }
+
+  @Post('boost')
+  async activateBoost(@Request() req: AuthenticatedRequest) {
+    return this.discoveryService.activateBoost(req.user.id);
+  }
+
+  @Get('boost/status')
+  async getBoostStatus(@Request() req: AuthenticatedRequest) {
+    return this.discoveryService.getBoostStatus(req.user.id);
+  }
 }

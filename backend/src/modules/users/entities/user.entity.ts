@@ -126,6 +126,9 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   lastSeenAt: Date;
 
+  @Column({ type: 'timestamp', nullable: true })
+  boostedUntil: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 

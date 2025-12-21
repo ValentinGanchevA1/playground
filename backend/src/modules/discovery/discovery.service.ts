@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, In } from 'typeorm';
-import { User } from '../users/entities/user.entity';
+import { Repository, Not, In, MoreThan } from 'typeorm';
+import { User, SubscriptionTier } from '../users/entities/user.entity';
 import { Swipe, SwipeType } from './entities/swipe.entity';
 import { Match } from './entities/match.entity';
 
@@ -85,9 +85,14 @@ export class DiscoveryService {
       );
     }
 
-    // Order by verification score and recency
+    // Order by boosted users first, then verification score and recency
     query = query
-      .orderBy('user.verificationScore', 'DESC')
+      .addSelect(
+        `CASE WHEN user.boostedUntil > NOW() THEN 1 ELSE 0 END`,
+        'isBoosted',
+      )
+      .orderBy('isBoosted', 'DESC')
+      .addOrderBy('user.verificationScore', 'DESC')
       .addOrderBy('user.lastSeenAt', 'DESC')
       .skip(skip)
       .take(limit);
@@ -143,7 +148,7 @@ export class DiscoveryService {
         relations: ['user1', 'user2'],
       });
 
-      return { matched: true, match: fullMatch };
+      return { matched: true, match: fullMatch || undefined };
     }
 
     return { matched: false };
@@ -206,7 +211,7 @@ export class DiscoveryService {
         relations: ['user1', 'user2'],
       });
 
-      return { matched: true, match: fullMatch };
+      return { matched: true, match: fullMatch || undefined };
     }
 
     return { matched: false };
@@ -281,6 +286,84 @@ export class DiscoveryService {
         type: like.type,
         createdAt: like.createdAt,
       }));
+  }
+
+  async rewindLastSwipe(userId: string): Promise<{ profile: any } | null> {
+    // Check if user has premium
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.subscriptionTier === SubscriptionTier.FREE) {
+      throw new ForbiddenException('Rewind is a premium feature');
+    }
+
+    // Get the most recent swipe
+    const lastSwipe = await this.swipesRepository.findOne({
+      where: { swiperId: userId },
+      order: { createdAt: 'DESC' },
+      relations: ['swiped'],
+    });
+
+    if (!lastSwipe) {
+      throw new BadRequestException('No swipes to rewind');
+    }
+
+    // Check if a match was created and delete it
+    const matchToDelete = await this.matchesRepository.findOne({
+      where: [
+        { user1Id: userId, user2Id: lastSwipe.swipedId },
+        { user1Id: lastSwipe.swipedId, user2Id: userId },
+      ],
+    });
+
+    if (matchToDelete) {
+      await this.matchesRepository.delete(matchToDelete.id);
+    }
+
+    // Delete the swipe
+    const swipedProfile = lastSwipe.swiped;
+    await this.swipesRepository.delete(lastSwipe.id);
+
+    return { profile: this.sanitizeUser(swipedProfile) };
+  }
+
+  async activateBoost(userId: string): Promise<{ boostedUntil: Date }> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.subscriptionTier === SubscriptionTier.FREE) {
+      throw new ForbiddenException('Boost is a premium feature');
+    }
+
+    // Check if already boosted
+    if (user.boostedUntil && user.boostedUntil > new Date()) {
+      throw new BadRequestException('Profile is already boosted');
+    }
+
+    // Boost for 30 minutes
+    const boostedUntil = new Date();
+    boostedUntil.setMinutes(boostedUntil.getMinutes() + 30);
+
+    await this.usersRepository.update(userId, { boostedUntil });
+
+    return { boostedUntil };
+  }
+
+  async getBoostStatus(userId: string): Promise<{ isBoosted: boolean; boostedUntil: Date | null }> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isBoosted = user.boostedUntil && user.boostedUntil > new Date();
+    return {
+      isBoosted: !!isBoosted,
+      boostedUntil: isBoosted ? user.boostedUntil : null,
+    };
   }
 
   private sanitizeUser(user: User) {
