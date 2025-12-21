@@ -1,0 +1,141 @@
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+  OneToMany,
+} from 'typeorm';
+import { Exclude } from 'class-transformer';
+import { SocialLink } from './social-link.entity';
+import { Verification } from './verification.entity';
+
+export enum Gender {
+  MALE = 'male',
+  FEMALE = 'female',
+  NON_BINARY = 'non_binary',
+  OTHER = 'other',
+  PREFER_NOT_TO_SAY = 'prefer_not_to_say',
+}
+
+export enum SubscriptionTier {
+  FREE = 'free',
+  BASIC = 'basic',
+  PREMIUM = 'premium',
+  VIP = 'vip',
+}
+
+@Entity('users')
+@Index(['email'], { unique: true, where: '"email" IS NOT NULL' })
+@Index(['phone'], { unique: true, where: '"phone" IS NOT NULL' })
+@Index(['location'], { spatial: true })
+export class User {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ nullable: true })
+  email: string;
+
+  @Column({ nullable: true })
+  phone: string;
+
+  @Column()
+  @Exclude()
+  passwordHash: string;
+
+  @Column({ length: 50 })
+  displayName: string;
+
+  @Column({ nullable: true })
+  avatarUrl: string;
+
+  @Column({
+    type: 'geography',
+    spatialFeatureType: 'Point',
+    srid: 4326,
+    nullable: true,
+  })
+  location: string; // PostGIS Point - stored as WKT string 'POINT(lng lat)'
+
+  @Column({ type: 'float', nullable: true })
+  lastLatitude: number;
+
+  @Column({ type: 'float', nullable: true })
+  lastLongitude: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastLocationUpdate: Date;
+
+  @Column({ type: 'jsonb', default: {} })
+  profile: {
+    bio?: string;
+    age?: number;
+    gender?: Gender;
+    interestedIn?: Gender;
+    interests?: string[];
+    goals?: string[];
+    photoUrls?: string[];
+    height?: number;
+    occupation?: string;
+    education?: string;
+    languages?: string[];
+    completedAt?: string;
+  };
+
+  @Column({ type: 'jsonb', default: {} })
+  badges: {
+    phone?: boolean;
+    email?: boolean;
+    photo?: boolean;
+    id?: boolean;
+    social?: boolean;
+    premium?: boolean;
+  };
+
+  @Column({ type: 'int', default: 0 })
+  verificationScore: number; // 0-100
+
+  @Column({ type: 'enum', enum: SubscriptionTier, default: SubscriptionTier.FREE })
+  subscriptionTier: SubscriptionTier;
+
+  @Column({ nullable: true })
+  stripeCustomerId: string;
+
+  @Column({ default: true })
+  isVisible: boolean; // Show on map
+
+  @Column({ default: true })
+  isActive: boolean; // Account status
+
+  @Column({ default: false })
+  isBanned: boolean;
+
+  @Column({ nullable: true })
+  bannedReason: string;
+
+  @Column({ type: 'jsonb', default: {} })
+  settings: {
+    notifications?: boolean;
+    locationSharing?: boolean;
+    showOnline?: boolean;
+    distanceUnit?: 'km' | 'miles';
+    language?: string;
+  };
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastSeenAt: Date;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  // Relations
+  @OneToMany(() => SocialLink, (link) => link.user)
+  socialLinks: SocialLink[];
+
+  @OneToMany(() => Verification, (verification) => verification.user)
+  verifications: Verification[];
+}

@@ -1,0 +1,28 @@
+# docker-compose.yml
+services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: g88-postgres
+    environment:
+      POSTGRES_USER: g88user
+      POSTGRES_PASSWORD: g88password
+      POSTGRES_DB: g88db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: g88-redis
+    ports:
+      - "6380:6379"  # Changed external port to 6380
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
