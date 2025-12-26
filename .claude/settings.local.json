@@ -28,7 +28,8 @@
       "Bash(npm run lint)",
       "Bash(npx eslint:*)",
       "Bash(grep:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0NzA5ZGMwMC1iZGIwLTQzYjAtYTE1Ni0wMzFmMGI4MzQxOGIiLCJlbWFpbCI6InRyYWRpbmctdGVzdEBleGFtcGxlLmNvbSIsInBob25lIjpudWxsLCJpYXQiOjE3NjY3NzAzNjMsImV4cCI6MTc2Njc3MTI2M30.YT-Z0_ViYQkid0CTjdVkAJVMGvBvYDvTS7NZl5plPz8\")"
     ]
   }
 }

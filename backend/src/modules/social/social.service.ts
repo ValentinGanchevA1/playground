@@ -161,7 +161,11 @@ export class SocialService {
   private async verifyFacebookToken(accessToken: string): Promise<SocialProfile> {
     try {
       const { data } = await axios.get(
-        `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`,
+        'https://graph.facebook.com/me',
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          params: { fields: 'id,name,email,picture.type(large)' },
+        },
       );
 
       return {

@@ -1,6 +1,7 @@
 // backend/src/modules/verification/verification.service.ts
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { randomInt } from 'crypto';
 import { Repository, Not, MoreThan } from 'typeorm';
 import { Verification, VerificationType, VerificationStatus } from '../users/entities/verification.entity';
 import { User } from '../users/entities/user.entity';
@@ -55,8 +56,8 @@ export class VerificationService {
       throw new BadRequestException('Too many attempts. Try again in 1 hour.');
     }
 
-    // Generate 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate cryptographically secure 6-digit code
+    const code = randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 600000); // 10 minutes
 
     // Send email
@@ -178,8 +179,8 @@ export class VerificationService {
       throw new BadRequestException('Too many attempts. Try again in 1 hour.');
     }
 
-    // Generate 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate cryptographically secure 6-digit code
+    const code = randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 600000); // 10 minutes
 
     // Send SMS via Twilio

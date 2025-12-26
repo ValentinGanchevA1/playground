@@ -6,7 +6,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import Stripe from 'stripe';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -42,6 +42,7 @@ export class GiftsService {
     @InjectRepository(GiftTransaction)
     private readonly transactionRepository: Repository<GiftTransaction>,
     private readonly configService: ConfigService,
+    private readonly dataSource: DataSource,
   ) {
     const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY') || '';
     this.stripe = new Stripe(stripeKey, {
@@ -183,31 +184,46 @@ export class GiftsService {
     const creatorShare = Math.floor(totalCost * (CREATOR_SHARE_PERCENT / 100));
     const platformFee = totalCost - creatorShare;
 
-    // Deduct from sender
-    senderWallet.coinBalance -= totalCost;
-    senderWallet.totalSpent += totalCost;
-    await this.walletRepository.save(senderWallet);
+    // Use transaction for atomic operations
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // Add to recipient
-    const recipientWallet = await this.getOrCreateWallet(recipientId);
-    recipientWallet.coinBalance += creatorShare;
-    recipientWallet.totalEarned += creatorShare;
-    await this.walletRepository.save(recipientWallet);
+    try {
+      // Deduct from sender
+      senderWallet.coinBalance -= totalCost;
+      senderWallet.totalSpent += totalCost;
+      await queryRunner.manager.save(senderWallet);
 
-    // Create transaction record
-    const transaction = this.transactionRepository.create({
-      senderId,
-      recipientId,
-      giftId,
-      quantity,
-      coinAmount: totalCost,
-      creatorShare,
-      platformFee,
-      message: message || undefined,
-      context: context || {},
-    });
+      // Add to recipient
+      const recipientWallet = await this.getOrCreateWallet(recipientId);
+      recipientWallet.coinBalance += creatorShare;
+      recipientWallet.totalEarned += creatorShare;
+      await queryRunner.manager.save(recipientWallet);
 
-    return this.transactionRepository.save(transaction);
+      // Create transaction record
+      const transaction = this.transactionRepository.create({
+        senderId,
+        recipientId,
+        giftId,
+        quantity,
+        coinAmount: totalCost,
+        creatorShare,
+        platformFee,
+        message: message || undefined,
+        context: context || {},
+      });
+
+      const savedTransaction = await queryRunner.manager.save(transaction);
+      await queryRunner.commitTransaction();
+
+      return savedTransaction;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   // ==================== TRANSACTION HISTORY ====================
