@@ -7,6 +7,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { IsNumber, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -90,6 +91,7 @@ export class LocationsController {
   ) {}
 
   @Post('update')
+  @Throttle({ short: { limit: 12, ttl: 60000 } }) // 12 updates per minute (1 every 5 seconds)
   @ApiOperation({ summary: 'Update user location' })
   async updateLocation(
     @CurrentUser() user: User,
@@ -136,6 +138,7 @@ export class LocationsController {
   }
 
   @Get('map-data')
+  @Throttle({ short: { limit: 30, ttl: 60000 } }) // 30 requests per minute
   @ApiOperation({ summary: 'Get combined map data (users + events)' })
   async getMapData(
     @CurrentUser() user: User,

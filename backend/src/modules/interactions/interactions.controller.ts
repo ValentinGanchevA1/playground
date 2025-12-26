@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { InteractionsService } from './interactions.service';
@@ -27,6 +28,7 @@ export class InteractionsController {
   ) {}
 
   @Post('wave')
+  @Throttle({ short: { limit: 10, ttl: 60000 } }) // 10 waves per minute to prevent spam
   @ApiOperation({ summary: 'Send a wave to another user' })
   async sendWave(
     @CurrentUser() user: User,
