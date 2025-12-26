@@ -24,7 +24,11 @@
       "Bash(ipconfig:*)",
       "Bash(curl:*)",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlOTk3ODdjMS1iODlhLTQxZGEtODRlMy1lMzdjMDdmNDg2YTEiLCJlbWFpbCI6InRlc3RAdGVzdC5jb20iLCJwaG9uZSI6bnVsbCwiaWF0IjoxNzY2Njc3ODgxLCJleHAiOjE3NjY2Nzg3ODF9.1X_1Vu0ermokJ7eYmgaBLOfWPbZfT5fK_GIaL24sCjE\")",
-      "Bash(node test-nearby.js:*)"
+      "Bash(node test-nearby.js:*)",
+      "Bash(npm run lint)",
+      "Bash(npx eslint:*)",
+      "Bash(grep:*)",
+      "Bash(taskkill:*)"
     ]
   }
 }

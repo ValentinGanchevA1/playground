@@ -116,7 +116,7 @@ export class LocationsService {
 
     // Map to response format with distance and categories
     return users.map((user) => {
-      const goals = (user.profile as any)?.goals || [];
+      const goals = user.profile?.goals || [];
       const { primaryCategory, secondaryCategory } = this.calculateCategories(goals);
 
       return {
@@ -171,7 +171,7 @@ export class LocationsService {
       .getMany();
 
     return users.map((user) => {
-      const goals = (user.profile as any)?.goals || [];
+      const goals = user.profile?.goals || [];
       const { primaryCategory, secondaryCategory } = this.calculateCategories(goals);
 
       return {

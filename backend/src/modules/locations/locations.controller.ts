@@ -34,6 +34,21 @@ export interface MapDataResponse {
   events: NearbyEvent[];
 }
 
+// Raw event data from PostgreSQL query
+interface RawEventQueryResult {
+  id: string;
+  title: string;
+  category: string;
+  latitude: number;
+  longitude: number;
+  distance: string;
+  startTime: Date;
+  attendeeCount: string;
+  hostName: string;
+  hostAvatar: string | null;
+  coverImageUrl: string | null;
+}
+
 class UpdateLocationDto {
   @IsNumber()
   @Type(() => Number)
@@ -144,7 +159,7 @@ export class LocationsController {
     ]);
 
     // Map raw events to NearbyEvent interface
-    const events: NearbyEvent[] = rawEvents.map((e: any) => ({
+    const events: NearbyEvent[] = rawEvents.map((e: RawEventQueryResult) => ({
       id: e.id,
       title: e.title,
       category: e.category,
