@@ -2,9 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Global prefix for API versioning
+  app.setGlobalPrefix('api/v1');
+
+  // Global exception filter
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Global validation pipe
   app.useGlobalPipes(
@@ -58,6 +65,7 @@ async function bootstrap() {
 ║  🚀 Server running on: http://localhost:${port}                 ║
 ║  📖 API Docs:          http://localhost:${port}/api/docs        ║
 ║  📱 Android Emulator:  http://10.0.2.2:${port}                  ║
+║  🔌 API Endpoint:      http://localhost:${port}/api/v1          ║
 ╚═══════════════════════════════════════════════════════════════╝
   `);
 }
