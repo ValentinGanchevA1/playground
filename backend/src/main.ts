@@ -27,11 +27,19 @@ async function bootstrap() {
 
   // CORS configuration
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:8081',
-      'http://10.0.2.2:8081', // Android emulator
-    ],
+    origin: process.env.NODE_ENV === 'production'
+      ? [
+          'https://g88.app',
+          'https://www.g88.app',
+          'capacitor://localhost',  // Capacitor iOS
+          'ionic://localhost',       // Capacitor Android
+          'http://localhost',        // Capacitor general
+        ]
+      : [
+          'http://localhost:3000',
+          'http://localhost:8081',
+          'http://10.0.2.2:8081', // Android emulator
+        ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization',
     credentials: true,
