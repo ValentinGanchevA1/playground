@@ -31,7 +31,17 @@
       "Bash(taskkill:*)",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0NzA5ZGMwMC1iZGIwLTQzYjAtYTE1Ni0wMzFmMGI4MzQxOGIiLCJlbWFpbCI6InRyYWRpbmctdGVzdEBleGFtcGxlLmNvbSIsInBob25lIjpudWxsLCJpYXQiOjE3NjY3NzAzNjMsImV4cCI6MTc2Njc3MTI2M30.YT-Z0_ViYQkid0CTjdVkAJVMGvBvYDvTS7NZl5plPz8\")",
       "Bash(dir:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(if [ -f \"mobile/android/app/google-services.json\" ])",
+      "Bash(then echo \"✓ google-services.json exists\")",
+      "Bash(else echo \"✗ google-services.json NOT FOUND\")",
+      "Bash(fi)",
+      "Bash(ls:*)",
+      "Bash(keytool -list -v -keystore:*)",
+      "Bash(./gradlew assembleRelease:*)",
+      "Bash(./gradlew bundleRelease:*)",
+      "Bash(./gradlew --stop)",
+      "Bash(node -e:*)"
     ]
   }
 }
