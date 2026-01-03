@@ -41,7 +41,9 @@
       "Bash(./gradlew assembleRelease:*)",
       "Bash(./gradlew bundleRelease:*)",
       "Bash(./gradlew --stop)",
-      "Bash(node -e:*)"
+      "Bash(node -e:*)",
+      "Bash(copy:*)",
+      "Bash(chmod:*)"
     ]
   }
 }

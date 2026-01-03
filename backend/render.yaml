@@ -1,0 +1,166 @@
+# Render Blueprint for G88 Backend
+# This file defines all infrastructure needed for production deployment
+# Documentation: https://render.com/docs/blueprint-spec
+
+services:
+  # PostgreSQL Database with PostGIS Extension
+  - type: pserv
+    name: g88-postgres
+    env: docker
+    plan: starter  # $7/month - Change to 'free' for free tier (limited)
+    region: oregon  # Change to your preferred region
+    dockerfilePath: ./deploy/Dockerfile.postgres
+    dockerContext: ./deploy
+    envVars:
+      - key: POSTGRES_USER
+        value: g88user
+      - key: POSTGRES_PASSWORD
+        generateValue: true  # Render will generate a secure password
+      - key: POSTGRES_DB
+        value: g88db_production
+    disk:
+      name: postgres-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 10  # 10GB storage - adjust as needed
+
+  # Redis Instance
+  - type: redis
+    name: g88-redis
+    plan: starter  # $7/month - Change to 'free' for free tier (limited)
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []  # Empty = allow from all Render services
+
+  # NestJS Backend Web Service
+  - type: web
+    name: g88-backend
+    env: node
+    region: oregon
+    plan: starter  # $7/month - Change to 'free' for free tier
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/v1/health
+    envVars:
+      # Server Configuration
+      - key: PORT
+        value: 3001
+      - key: NODE_ENV
+        value: production
+
+      # Database - Auto-configured from postgres service
+      - key: DATABASE_HOST
+        fromService:
+          type: pserv
+          name: g88-postgres
+          property: host
+      - key: DATABASE_PORT
+        fromService:
+          type: pserv
+          name: g88-postgres
+          property: port
+      - key: DATABASE_USER
+        fromService:
+          type: pserv
+          name: g88-postgres
+          envVarKey: POSTGRES_USER
+      - key: DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: g88-postgres
+          envVarKey: POSTGRES_PASSWORD
+      - key: DATABASE_NAME
+        fromService:
+          type: pserv
+          name: g88-postgres
+          envVarKey: POSTGRES_DB
+      - key: DATABASE_URL
+        fromService:
+          type: pserv
+          name: g88-postgres
+          property: connectionString
+
+      # Redis - Auto-configured from redis service
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: g88-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: g88-redis
+          property: port
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: g88-redis
+          property: connectionString
+
+      # JWT Secrets - CRITICAL: Generate with: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+
+      # Stripe - Add your production keys in Render dashboard
+      - key: STRIPE_SECRET_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+      # Twilio - Add your production credentials in Render dashboard
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+
+      # SendGrid - Add your production API key in Render dashboard
+      - key: SENDGRID_API_KEY
+        sync: false
+
+      # AWS S3 - Add your production credentials in Render dashboard
+      - key: AWS_REGION
+        value: eu-north-1
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_S3_BUCKET
+        value: g88-uploads-production
+
+      # Google OAuth - Add your production credentials in Render dashboard
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+      # AWS Rekognition
+      - key: AWS_REKOGNITION_COLLECTION_ID
+        value: g88-faces-production
+
+databases:
+  # Alternative: Use Render's managed PostgreSQL instead of Docker
+  # Uncomment this and remove the pserv above for managed database
+  # - name: g88-postgres
+  #   databaseName: g88db_production
+  #   user: g88user
+  #   plan: starter  # $7/month
+  #   region: oregon
+  #   postgresMajorVersion: 15
+
+# Environment variable groups (optional - for sharing vars across services)
+# envVarGroups:
+#   - name: aws-credentials
+#     envVars:
+#       - key: AWS_REGION
+#         value: eu-north-1
+#       - key: AWS_ACCESS_KEY_ID
+#         sync: false
+#       - key: AWS_SECRET_ACCESS_KEY
+#         sync: false
