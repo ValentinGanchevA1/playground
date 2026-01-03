@@ -4,12 +4,15 @@ npm-debug.log
 yarn-error.log
 package-lock.json
 
-# Environment variables
+# Environment variables - NEVER commit secrets
 .env
 .env.local
 .env.production
 .env.staging
 .env.test
+.env.development
+.env*.local
+*.env.local
 
 # Build output
 dist/
