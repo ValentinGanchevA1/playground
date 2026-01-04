@@ -9,8 +9,8 @@ services:
     region: oregon
     plan: starter
     rootDir: backend
-    buildCommand: npm install && npm run build
-    startCommand: npm run start:prod
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: node dist/main
     healthCheckPath: /api/v1/health
     envVars:
       - key: PORT
