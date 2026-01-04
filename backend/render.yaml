@@ -8,9 +8,11 @@ services:
     runtime: node
     region: oregon
     plan: starter
-    buildCommand: npm install && npm run build
+    rootDir: backend
+    buildCommand: npm ci && npm run build
     startCommand: npm run start:prod
     healthCheckPath: /api/v1/health
+    nodeVersion: 20
     envVars:
       - key: PORT
         value: "3001"
@@ -59,6 +61,14 @@ services:
         sync: false
       - key: AWS_REKOGNITION_COLLECTION_ID
         value: g88-faces-production
+
+  # Redis Cache Instance
+  - type: redis
+    name: g88-redis
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
 
 databases:
   - name: g88-postgres
