@@ -26,6 +26,13 @@ export enum SubscriptionTier {
   VIP = 'vip',
 }
 
+export enum UserStatus {
+  FREE = 'free',
+  VERIFIED = 'verified',
+  PRO = 'pro',
+  INCOGNITO = 'incognito',
+}
+
 @Entity('users')
 @Index(['email'], { unique: true, where: '"email" IS NOT NULL' })
 @Index(['phone'], { unique: true, where: '"phone" IS NOT NULL' })
@@ -135,8 +142,24 @@ export class User {
   @Column({ type: 'int', default: 1 })
   level: number;
 
-  @CreateDateColumn()
-  createdAt: Date;
+  // Skills System - Core attributes like name, photo, age
+  @Column({ type: 'enum', enum: UserStatus, default: UserStatus.FREE })
+  status: UserStatus; // free, verified, pro, incognito
+
+  @Column({ type: 'int', default: 0 })
+  datingScore: number; // 0-100: Based on matches, conversations, connections
+
+  @Column({ type: 'int', default: 0 })
+  socialScore: number; // 0-100: Based on followers, events, gifts, interactions
+
+  @Column({ type: 'int', default: 0 })
+  traderScore: number; // 0-100: Based on transactions, ratings, disputes
+
+  @Column({ type: 'int', default: 1 })
+  overallLevel: number; // 1-10: Derived from average of three scores
+
+  @Column({ type: 'timestamp', nullable: true })
+  skillsLastCalculatedAt: Date; // When skills were last recalculated
 
   @UpdateDateColumn()
   updatedAt: Date;
